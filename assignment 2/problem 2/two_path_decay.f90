@@ -17,6 +17,7 @@ real(dp), parameter :: r2 = 6
 
 ! Record of results 
 real(dp), dimension(trials) :: surv, t1, t2
+
 real(dp) :: t, dt, u, tau
 integer :: i, nt1, nt2
 
@@ -29,10 +30,11 @@ nt1 = 0
 nt2 = 0
 
 do i = 1, trials
-	call random_number(u)
+	! Roll to determine time step
 	call random_exp(tau, t)
 	
-	
+	! Roll to determine decay path
+	call random_number(u)
 	if (u < tau*r1) then
 		t1(i) = t
 		nt1 = nt1 + 1
@@ -49,8 +51,7 @@ print *, sum(surv)/trials, 1.0_dp*nt1/trials, sum(t1)/nt1, 1.0_dp*nt2/trials, su
 
 ! Dump data to file
 call dump()
-! Plot
-call execute_command_line('gnuplot -p ' // 'two_path_decay_plot.gp')
+
 
 contains
 
@@ -87,8 +88,10 @@ function data2hist(dat) result (hist)
 		end do
 	end do
 	
+	! Normalize histogram
 	hist(2,:) = hist(2,:)/(sum(hist(2,:))*width)
 	
+	! Sum to get cumulative distribution
 	hist(2,1) = hist(2,1) * width
 	do i = 2, bins
 		hist(2,i) = hist(2,i-1) + hist(2,i)*width
@@ -122,7 +125,7 @@ subroutine dump()
 	end do
 	close(io)
 	
-	! Convert data to histogram data.
+	! Convert data to histogram data. Normalize if required.
 	surv_hist = data2hist(surv)
 	t1_hist = r1*tau*(1-data2hist(t1))
 	t2_hist = r2*tau*(1-data2hist(t2))
@@ -132,7 +135,9 @@ subroutine dump()
 		write (io,*) surv_hist(1,i), surv_hist(2,i), t1_hist(2,i), t2_hist(2,i)
 	end do
 	close(io)
-
+	
+	! Plot histograms
+	call execute_command_line('gnuplot -p ' // 'two_path_decay_plot.gp')
 end subroutine
 
 
