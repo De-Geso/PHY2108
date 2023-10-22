@@ -1,0 +1,7 @@
+# ignore fortran binaries
+a./out
+*.o
+*.mod
+
+# ignore data files
+*.dat
