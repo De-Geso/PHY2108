@@ -15,7 +15,7 @@ integer, parameter :: xf = 100
 ! Be careful changing these. If p and q are very close, it greatly
 ! increases the run time.
 ! Probability to step right.
-real, parameter :: p = 0.6
+real, parameter :: p = 0.49
 ! Probability to step left.
 real, parameter :: q = 1.0-p
 
