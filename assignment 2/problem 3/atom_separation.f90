@@ -8,7 +8,7 @@ implicit none
 real, parameter :: pi=4.D0*DATAN(1.D0)
 
 ! Program parameters
-integer, parameter :: trials = 2**0
+integer, parameter :: trials = 2**6
 real, parameter :: tmax = 2.0**6
 real, parameter :: dt = 0.0001
 integer, parameter :: steps = floor(tmax/dt)
@@ -16,48 +16,60 @@ integer, parameter :: steps = floor(tmax/dt)
 ! Physical parameters
 real, parameter :: x0 = 1.0
 real, parameter :: beta = 1.0
-real, parameter :: a = 4.0
+real, parameter :: a = 2.0
 real, parameter :: D = 1.0
 real, parameter :: mu = beta*D
 
-real :: xnext, xnow
-real :: r, rsum, u, t
+real, dimension(trials) :: xnext, xnow, r, rsum, r2sum
+real :: u, t
 
 integer :: i, j
 
 call random_seed()
 
 rsum = 0.0
+r2sum = 0.0
 xnow = x0
 
-do j = 1, trials
-	do i = 1, steps
-		t = dt*i
-		r = xnow
-		rsum = rsum + abs(r)
+open(1, file='mean_r.dat')
+open(2, file='var_r.dat')
+do i = 1, steps
+	t = dt*i
+	do j = 1, trials
+		r(j) = xnow(j)
+		rsum(j) = rsum(j) + abs(r(j))
+		r2sum(j) = r2sum(j) + abs(r(j)**2)
 		call rand_norm(u, 0.0, 2.0*D*dt)
 		! Calculate next x position. Change to Runge-Kutte 4 later?
-		xnext = xnow + mu*force(r)*dt + u
-		! Record all the trials in scratch files to combine later.
-		open(unit=j, status='scratch')
-		write (j,*) t, xnow, abs(r), rsum/i, ravg_theory(t)
-		xnow = xnext
+		xnext(j) = xnow(j) + mu*force(r(j))*dt + u
+		xnow(j) = xnext(j)
 	end do
-	close(j)
+	! Average r
+	write (1,*) t, sum(rsum)/i/trials, ravg_theory(t)
+	! Variance of r
+	write (2,*) t, sum(r2sum)/i/trials - (sum(rsum)/i/trials)**2, var_theory(t)/sqrt(pi)
 end do
+close(1)
+close(2)
 
-print *, rsum/i
+print *, 'Average separation is:', sum(rsum)/i/trials
+
+! Plot histograms
+call execute_command_line('gnuplot -p ' // 'atom_separation.gp')
 
 
 contains 
 
 
-subroutine dump()
-	character(len=8) :: filename
-	integer :: i, io
-end subroutine
+pure function var_theory(t) result(var)
+	real, intent(in) :: t
+	real :: var
+	
+	var = 2/(pi*a)*(1-exp(-2*a*D*t))
+end function
 
-pure function ravg_theory(t) result (r)
+
+pure function ravg_theory(t) result(r)
 	real, intent(in) :: t
 	real :: r
 	
